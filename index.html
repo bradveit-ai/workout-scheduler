@@ -698,16 +698,18 @@ async function pushOne(i) {
   const dur = w.moving_time || w.icu_moving_time || 3600; // default 1hr
   const totalSeconds = dur + BUFFER_MINUTES * 60;
 
-  const startDT = `${dateStr}T${timeVal}:00`;
-  const startMs = new Date(startDT).getTime();
-  const endMs = startMs + totalSeconds * 1000;
-  const endDT = new Date(endMs).toISOString().replace('Z', '');
-  const endLocal = endDT.substring(0, 16) + ':00';
+  // Parse start time into hours and minutes
+  const [startHour, startMin] = timeVal.split(':').map(Number);
+  const startTotalMins = startHour * 60 + startMin;
+  const endTotalMins = startTotalMins + totalSeconds / 60;
+  const endHour = Math.floor(endTotalMins / 60) % 24;
+  const endMin = Math.round(endTotalMins % 60);
+  const endTimeStr = `${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}`;
 
   const event = {
     summary: `🚴 ${w.name || 'Workout'}`,
     start: { dateTime: `${dateStr}T${timeVal}:00`, timeZone: 'America/Chicago' },
-    end: { dateTime: `${dateStr}T${endLocal.split('T')[1]}`, timeZone: 'America/Chicago' },
+    end: { dateTime: `${dateStr}T${endTimeStr}:00`, timeZone: 'America/Chicago' },
     visibility: 'private',
     reminders: { useDefault: false, overrides: [] },
     description: `Wahoo SYSTM workout\nDuration: ${formatDuration(dur)}\n+${BUFFER_MINUTES}min shower buffer included`
