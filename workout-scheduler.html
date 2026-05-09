@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Scheduler</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0d;
+    --surface: #1a1a17;
+    --border: #2a2a25;
+    --accent: #e8c84a;
+    --accent2: #4a9ee8;
+    --text: #e8e4d8;
+    --muted: #6a6a60;
+    --danger: #e85a4a;
+    --success: #4ae87a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Bebas Neue', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: 3.5rem;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+
+  /* AUTH SECTION */
+  .auth-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .auth-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .field {
+    margin-bottom: 1rem;
+  }
+
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.65rem 1.4rem;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0f0d;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+  }
+
+  .btn-secondary:hover:not(:disabled) { opacity: 0.75; }
+
+  .btn-success {
+    background: var(--success);
+    color: #0f0f0d;
+    font-weight: 500;
+  }
+
+  .btn-success:hover:not(:disabled) { opacity: 0.85; }
+
+  /* STATUS */
+  .status {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 2px;
+    margin-bottom: 1.2rem;
+    display: none;
+  }
+
+  .status.show { display: block; }
+  .status.info { background: rgba(74,158,232,0.1); border: 1px solid rgba(74,158,232,0.3); color: var(--accent2); }
+  .status.error { background: rgba(232,90,74,0.1); border: 1px solid rgba(232,90,74,0.3); color: var(--danger); }
+  .status.success { background: rgba(74,232,122,0.1); border: 1px solid rgba(74,232,122,0.3); color: var(--success); }
+
+  /* WORKOUT LIST */
+  .workout-section { display: none; }
+  .workout-section.show { display: block; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+  }
+
+  .section-title {
+    font-family: var(--display);
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+
+  .workout-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 0.8rem;
+    transition: border-color 0.15s;
+  }
+
+  .workout-card.synced {
+    border-color: var(--success);
+    opacity: 0.6;
+  }
+
+  .workout-card:hover:not(.synced) {
+    border-color: var(--accent);
+  }
+
+  .workout-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .workout-date {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .workout-duration {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .workout-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .workout-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .time-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .time-input-wrap label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .time-input-wrap input[type="time"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .time-input-wrap input[type="time"]:focus {
+    border-color: var(--accent);
+  }
+
+  .synced-badge {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--success);
+    display: none;
+  }
+
+  .workout-card.synced .synced-badge { display: inline; }
+  .workout-card.synced .workout-controls { display: none; }
+
+  /* BUFFER NOTE */
+  .buffer-note {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  /* DATE RANGE */
+  .date-range {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .date-range .field {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  /* EMPTY */
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    border-radius: 2px;
+  }
+
+  /* GCAL AUTH */
+  .gcal-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .gcal-connected {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .dot.green { background: var(--success); }
+
+  /* SPINNER */
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(232,200,74,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .push-all-row {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    align-items: center;
+  }
+
+  .push-count {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Calendar of Truth</div>
+    <h1>Workout Scheduler</h1>
+    <div class="subtitle">SYSTM → Google Calendar · +20 min buffer · private events</div>
+  </header>
+
+  <!-- STATUS -->
+  <div class="status" id="status"></div>
+
+  <!-- INTERVALS AUTH -->
+  <div class="auth-section" id="authSection">
+    <div class="auth-title">Intervals.icu Credentials</div>
+    <div class="field">
+      <label>Athlete ID</label>
+      <input type="text" id="athleteId" placeholder="i577795" value="i577795">
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" id="apiKey" placeholder="your api key" value="1bbl0aj3j21osknq1sllnbvlv">
+    </div>
+    <button class="btn btn-primary" onclick="loadWorkouts()">Load Workouts</button>
+  </div>
+
+  <!-- GOOGLE CALENDAR AUTH -->
+  <div class="gcal-section" id="gcalSection" style="display:none">
+    <div class="auth-title">Google Calendar</div>
+    <div class="gcal-connected">
+      <div class="dot" id="gcalDot"></div>
+      <span id="gcalStatus" style="font-family:var(--mono);font-size:0.75rem;color:var(--muted);">Not connected</span>
+      <button class="btn btn-secondary" id="gcalBtn" onclick="connectGoogle()" style="margin-left:auto">Connect Google</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.8rem;">
+      Events will be created in your <strong style="color:var(--text)">Work</strong> calendar as private events with +20 min shower buffer.
+    </div>
+  </div>
+
+  <!-- WORKOUT SECTION -->
+  <div class="workout-section" id="workoutSection">
+    <div class="section-header">
+      <div class="section-title">Upcoming Workouts</div>
+      <button class="btn btn-secondary" onclick="loadWorkouts()" style="font-size:0.6rem">↻ Refresh</button>
+    </div>
+
+    <div class="date-range">
+      <div class="field">
+        <label>From</label>
+        <input type="date" id="dateFrom" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:0.82rem;padding:0.5rem 0.7rem;border-radius:2px;outline:none;width:100%">
+      </div>
+      <div class="field">
+        <label>To</label>
+        <input type="date" id="dateTo" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:0.82rem;padding:0.5rem 0.7rem;border-radius:2px;outline:none;width:100%">
+      </div>
+      <button class="btn btn-primary" onclick="filterWorkouts()" style="margin-bottom:0;height:fit-content">Filter</button>
+    </div>
+
+    <div id="workoutList"></div>
+
+    <div class="push-all-row" id="pushAllRow" style="display:none">
+      <span class="push-count" id="pushCount"></span>
+      <button class="btn btn-success" onclick="pushAll()">Push All to Google Calendar</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const BUFFER_MINUTES = 20;
+const PROXY = 'https://api.anthropic.com/v1/messages'; // not used — direct fetch
+
+// Google OAuth config — using implicit flow via popup
+const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+const GCAL_CLIENT_ID = ''; // filled by user below
+
+let allWorkouts = [];
+let filteredWorkouts = [];
+let gcalToken = null;
+let workCalendarId = null;
+
+// ── STATUS ──────────────────────────────────────────────────────────────────
+function showStatus(msg, type = 'info') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = `status show ${type}`;
+}
+
+function hideStatus() {
+  document.getElementById('status').className = 'status';
+}
+
+// ── DATE HELPERS ─────────────────────────────────────────────────────────────
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function daysFromNow(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return '';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+// ── LOAD WORKOUTS FROM INTERVALS.ICU ─────────────────────────────────────────
+async function loadWorkouts() {
+  const athleteId = document.getElementById('athleteId').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+
+  if (!athleteId || !apiKey) {
+    showStatus('Enter your Athlete ID and API Key first.', 'error');
+    return;
+  }
+
+  showStatus('<span class="spinner"></span>Loading workouts from Intervals.icu...', 'info');
+  document.getElementById('status').innerHTML = '<span class="spinner"></span> Loading workouts from Intervals.icu...';
+
+  const fromDate = today();
+  const toDate = daysFromNow(21);
+
+  document.getElementById('dateFrom').value = fromDate;
+  document.getElementById('dateTo').value = toDate;
+
+  try {
+    const url = `https://intervals.icu/api/v1/athlete/${athleteId}/events?oldest=${fromDate}&newest=${toDate}`;
+    const resp = await fetch(url, {
+      headers: {
+        'Authorization': 'Basic ' + btoa(`API_KEY:${apiKey}`),
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`Intervals API error ${resp.status}: ${err}`);
+    }
+
+    const data = await resp.json();
+
+    // Filter to planned workouts only (not completed)
+    allWorkouts = (data || []).filter(e =>
+      e.type === 'Workout' || e.category === 'CYCLING' || e.category === 'RUNNING' ||
+      (e.planned_distance || e.moving_time || e.icu_training_load) && !e.athlete_id
+    ).filter(e => !e.start_date_local || e.start_date_local >= fromDate);
+
+    // Also grab all events with a name that look like workouts
+    allWorkouts = (data || []).filter(e => e.name && (
+      e.type === 'Workout' ||
+      e.category === 'CYCLING' ||
+      e.category === 'RUNNING' ||
+      e.category === 'STRENGTH' ||
+      e.category === 'YOGA' ||
+      e.moving_time ||
+      e.icu_training_load
+    ));
+
+    filteredWorkouts = [...allWorkouts];
+
+    hideStatus();
+    renderWorkouts();
+
+    document.getElementById('gcalSection').style.display = 'block';
+    document.getElementById('workoutSection').className = 'workout-section show';
+
+  } catch (err) {
+    showStatus(`Error: ${err.message}`, 'error');
+  }
+}
+
+// ── FILTER ────────────────────────────────────────────────────────────────────
+function filterWorkouts() {
+  const from = document.getElementById('dateFrom').value;
+  const to = document.getElementById('dateTo').value;
+  filteredWorkouts = allWorkouts.filter(w => {
+    const d = (w.start_date_local || w.date || '').split('T')[0];
+    return d >= from && d <= to;
+  });
+  renderWorkouts();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderWorkouts() {
+  const list = document.getElementById('workoutList');
+
+  if (filteredWorkouts.length === 0) {
+    list.innerHTML = '<div class="empty">No planned workouts found in this date range.<br>Try refreshing or widening the date range.</div>';
+    document.getElementById('pushAllRow').style.display = 'none';
+    return;
+  }
+
+  const pending = filteredWorkouts.filter(w => !w._synced);
+  document.getElementById('pushCount').textContent = `${pending.length} workout${pending.length !== 1 ? 's' : ''} ready to push`;
+  document.getElementById('pushAllRow').style.display = gcalToken ? 'flex' : 'none';
+
+  list.innerHTML = filteredWorkouts.map((w, i) => {
+    const dateStr = (w.start_date_local || w.date || '').split('T')[0];
+    const dur = w.moving_time || w.icu_moving_time || 0;
+    const totalWithBuffer = dur ? formatDuration(dur + BUFFER_MINUTES * 60) : `+${BUFFER_MINUTES}m buffer`;
+    const defaultTime = w.start_date_local && w.start_date_local.includes('T')
+      ? w.start_date_local.split('T')[1].substring(0, 5)
+      : '06:00';
+
+    return `
+    <div class="workout-card${w._synced ? ' synced' : ''}" id="card-${i}">
+      <div class="workout-meta">
+        <span class="workout-date">${formatDate(dateStr)}</span>
+        ${dur ? `<span class="workout-duration">${formatDuration(dur)} ride · ${totalWithBuffer} total</span>` : ''}
+      </div>
+      <div class="workout-name">${w.name || 'Workout'}</div>
+      <div class="workout-controls">
+        <div class="time-input-wrap">
+          <label>Start time</label>
+          <input type="time" id="time-${i}" value="${defaultTime}">
+        </div>
+        ${gcalToken ? `<button class="btn btn-primary" onclick="pushOne(${i})" style="font-size:0.62rem;padding:0.4rem 0.9rem">Push to Calendar</button>` : '<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">Connect Google to push</span>'}
+      </div>
+      <span class="synced-badge">✓ Added to Google Calendar</span>
+      ${dur ? `<div class="buffer-note">End time = ${formatDuration(dur)} + ${BUFFER_MINUTES}min shower buffer</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── GOOGLE AUTH ───────────────────────────────────────────────────────────────
+function connectGoogle() {
+  // Use Google Identity Services
+  if (!window.google) {
+    loadGoogleScript();
+    return;
+  }
+  initGoogleAuth();
+}
+
+function loadGoogleScript() {
+  showStatus('Loading Google authentication...', 'info');
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.onload = initGoogleAuth;
+  document.head.appendChild(script);
+}
+
+function initGoogleAuth() {
+  // Use the token client for calendar access
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: document.getElementById('gcalClientId') ? document.getElementById('gcalClientId').value : '',
+    scope: GCAL_SCOPES,
+    callback: (resp) => {
+      if (resp.error) {
+        showStatus('Google auth error: ' + resp.error, 'error');
+        return;
+      }
+      gcalToken = resp.access_token;
+      onGoogleConnected();
+    }
+  });
+  tokenClient.requestAccessToken();
+}
+
+function onGoogleConnected() {
+  document.getElementById('gcalDot').className = 'dot green';
+  document.getElementById('gcalStatus').textContent = 'Connected';
+  document.getElementById('gcalStatus').style.color = 'var(--success)';
+  document.getElementById('gcalBtn').style.display = 'none';
+  findWorkCalendar();
+  renderWorkouts();
+}
+
+async function findWorkCalendar() {
+  try {
+    const resp = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+      headers: { 'Authorization': `Bearer ${gcalToken}` }
+    });
+    const data = await resp.json();
+    const workCal = (data.items || []).find(c =>
+      c.summary.toLowerCase() === 'work' || c.summary.toLowerCase().includes('work')
+    );
+    if (workCal) {
+      workCalendarId = workCal.id;
+    } else {
+      workCalendarId = 'primary';
+      showStatus('Could not find "Work" calendar — will use primary. You can change this in code.', 'info');
+    }
+  } catch (e) {
+    workCalendarId = 'primary';
+  }
+}
+
+// ── PUSH TO GOOGLE CALENDAR ───────────────────────────────────────────────────
+async function pushOne(i) {
+  if (!gcalToken) {
+    showStatus('Connect Google Calendar first.', 'error');
+    return;
+  }
+
+  const w = filteredWorkouts[i];
+  const timeVal = document.getElementById(`time-${i}`).value || '06:00';
+  const dateStr = (w.start_date_local || w.date || '').split('T')[0];
+
+  const dur = w.moving_time || w.icu_moving_time || 3600; // default 1hr
+  const totalSeconds = dur + BUFFER_MINUTES * 60;
+
+  const startDT = `${dateStr}T${timeVal}:00`;
+  const startMs = new Date(startDT).getTime();
+  const endMs = startMs + totalSeconds * 1000;
+  const endDT = new Date(endMs).toISOString().replace('Z', '');
+  const endLocal = endDT.substring(0, 16) + ':00';
+
+  const event = {
+    summary: `🚴 ${w.name || 'Workout'}`,
+    start: { dateTime: `${dateStr}T${timeVal}:00`, timeZone: 'America/Chicago' },
+    end: { dateTime: `${dateStr}T${endLocal.split('T')[1]}`, timeZone: 'America/Chicago' },
+    visibility: 'private',
+    reminders: { useDefault: false, overrides: [] },
+    description: `Wahoo SYSTM workout\nDuration: ${formatDuration(dur)}\n+${BUFFER_MINUTES}min shower buffer included`
+  };
+
+  try {
+    const calId = encodeURIComponent(workCalendarId || 'primary');
+    const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calId}/events`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gcalToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(event)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || 'Unknown error');
+    }
+
+    filteredWorkouts[i]._synced = true;
+    document.getElementById(`card-${i}`).className = 'workout-card synced';
+    document.getElementById(`card-${i}`).querySelector('.workout-controls').style.display = 'none';
+    document.getElementById(`card-${i}`).querySelector('.synced-badge').style.display = 'inline';
+
+    const pending = filteredWorkouts.filter(w => !w._synced).length;
+    document.getElementById('pushCount').textContent = `${pending} workout${pending !== 1 ? 's' : ''} ready to push`;
+
+  } catch (err) {
+    showStatus(`Failed to create event: ${err.message}`, 'error');
+  }
+}
+
+async function pushAll() {
+  const pending = filteredWorkouts.filter((w, i) => !w._synced);
+  for (let i = 0; i < filteredWorkouts.length; i++) {
+    if (!filteredWorkouts[i]._synced) {
+      await pushOne(i);
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+  showStatus('All workouts pushed to Google Calendar!', 'success');
+}
+
+// ── GOOGLE CLIENT ID SETUP ────────────────────────────────────────────────────
+// Since we need a Google OAuth Client ID, show a setup field if not configured
+window.addEventListener('DOMContentLoaded', () => {
+  const gcalSection = document.getElementById('gcalSection');
+
+  // Add client ID field
+  gcalSection.innerHTML = `
+    <div class="auth-title">Google Calendar Connection</div>
+    <p style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+      To push events to Google Calendar, you need a free Google OAuth Client ID.<br>
+      <strong style="color:var(--accent)">One-time setup:</strong> go to console.cloud.google.com → New Project → Enable Google Calendar API → Credentials → OAuth 2.0 Client ID (Web) → add <code style="color:var(--accent2)">${location.origin}</code> as authorized origin → paste Client ID below.
+    </p>
+    <div class="field">
+      <label>Google OAuth Client ID</label>
+      <input type="text" id="gcalClientId" placeholder="xxxxxxxx.apps.googleusercontent.com">
+    </div>
+    <div class="gcal-connected">
+      <div class="dot" id="gcalDot"></div>
+      <span id="gcalStatus" style="font-family:var(--mono);font-size:0.75rem;color:var(--muted);">Not connected</span>
+      <button class="btn btn-secondary" id="gcalBtn" onclick="connectGoogleWithClientId()" style="margin-left:auto">Connect Google</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.8rem;">
+      Events → <strong style="color:var(--text)">Work</strong> calendar · private · +20 min buffer
+    </div>
+  `;
+});
+
+function connectGoogleWithClientId() {
+  const clientId = document.getElementById('gcalClientId').value.trim();
+  if (!clientId) {
+    showStatus('Enter your Google OAuth Client ID first.', 'error');
+    return;
+  }
+
+  if (!window.google) {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.onload = () => doGoogleAuth(clientId);
+    document.head.appendChild(script);
+  } else {
+    doGoogleAuth(clientId);
+  }
+}
+
+function doGoogleAuth(clientId) {
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
+    callback: (resp) => {
+      if (resp.error) {
+        showStatus('Google auth error: ' + resp.error, 'error');
+        return;
+      }
+      gcalToken = resp.access_token;
+      onGoogleConnected();
+    }
+  });
+  tokenClient.requestAccessToken();
+}
+</script>
+</body>
+</html>
