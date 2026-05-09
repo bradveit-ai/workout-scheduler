@@ -754,21 +754,12 @@ async function pushAll() {
 }
 
 // ── GOOGLE CLIENT ID SETUP ────────────────────────────────────────────────────
-// Since we need a Google OAuth Client ID, show a setup field if not configured
+const BAKED_CLIENT_ID = '608228675845-med5ug3ufl2epqdhn6hv0atf31vv2mii.apps.googleusercontent.com';
+
 window.addEventListener('DOMContentLoaded', () => {
   const gcalSection = document.getElementById('gcalSection');
-
-  // Add client ID field
   gcalSection.innerHTML = `
     <div class="auth-title">Google Calendar Connection</div>
-    <p style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
-      To push events to Google Calendar, you need a free Google OAuth Client ID.<br>
-      <strong style="color:var(--accent)">One-time setup:</strong> go to console.cloud.google.com → New Project → Enable Google Calendar API → Credentials → OAuth 2.0 Client ID (Web) → add <code style="color:var(--accent2)">${location.origin}</code> as authorized origin → paste Client ID below.
-    </p>
-    <div class="field">
-      <label>Google OAuth Client ID</label>
-      <input type="text" id="gcalClientId" placeholder="xxxxxxxx.apps.googleusercontent.com">
-    </div>
     <div class="gcal-connected">
       <div class="dot" id="gcalDot"></div>
       <span id="gcalStatus" style="font-family:var(--mono);font-size:0.75rem;color:var(--muted);">Not connected</span>
@@ -781,19 +772,13 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function connectGoogleWithClientId() {
-  const clientId = document.getElementById('gcalClientId').value.trim();
-  if (!clientId) {
-    showStatus('Enter your Google OAuth Client ID first.', 'error');
-    return;
-  }
-
   if (!window.google) {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
-    script.onload = () => doGoogleAuth(clientId);
+    script.onload = () => doGoogleAuth(BAKED_CLIENT_ID);
     document.head.appendChild(script);
   } else {
-    doGoogleAuth(clientId);
+    doGoogleAuth(BAKED_CLIENT_ID);
   }
 }
 
