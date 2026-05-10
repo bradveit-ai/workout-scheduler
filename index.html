@@ -670,15 +670,7 @@ async function findWorkCalendar() {
       headers: { 'Authorization': `Bearer ${gcalToken}` }
     });
     const data = await resp.json();
-    const workCal = (data.items || []).find(c =>
-      c.summary.toLowerCase() === 'work' || c.summary.toLowerCase().includes('work')
-    );
-    if (workCal) {
-      workCalendarId = workCal.id;
-    } else {
-      workCalendarId = 'primary';
-      showStatus('Could not find "Work" calendar — will use primary. You can change this in code.', 'info');
-    }
+    workCalendarId = 'f751e0524a9d82f10eb2b26f3354b45d8b25e1146ab32d51d099b981afa38bc7@group.calendar.google.com';
   } catch (e) {
     workCalendarId = 'primary';
   }
